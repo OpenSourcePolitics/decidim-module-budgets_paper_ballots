@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.email = ["pierre@mesu.re"]
   s.license = "AGPL-3.0"
   s.homepage = "https://github.com/decidim/decidim-module-budgets_paper_ballots"
-  s.required_ruby_version = ">= 2.7"
+  s.required_ruby_version = ">= 3.3"
 
   s.name = "decidim-budgets_paper_ballots"
   s.summary = "A decidim module to import paper ballots in PB votes"
