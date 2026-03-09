@@ -61,14 +61,5 @@ describe Decidim::BudgetsPaperBallots::Import::PaperBallotResultCreator do
 
       expect(record.new_record?).to be(false)
     end
-
-    it "creates an admin log record" do
-      # record = subject.produce
-      #
-      # subject.finish!
-      # log = Decidim::ActionLog.last
-      # expect(log.resource).to eq(record)
-      # expect(log.action).to eq("paper_ballot_result")
-    end
   end
 end

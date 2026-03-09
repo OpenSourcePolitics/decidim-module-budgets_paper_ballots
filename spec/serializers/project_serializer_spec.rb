@@ -50,10 +50,10 @@ module Decidim::Budgets
 
       it "includes the budget" do
         expect(serialized[:budget]).to eq(
-                                         id: project.budget.id,
-                                         title: project.budget.title,
-                                         url: router.budget_url(project.budget)
-                                       )
+          id: project.budget.id,
+          title: project.budget.title,
+          url: router.budget_url(project.budget)
+        )
       end
 
       it "includes the budget amount" do

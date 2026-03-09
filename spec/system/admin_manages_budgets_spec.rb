@@ -23,7 +23,7 @@ describe "Admin manages budgets" do
     it_behaves_like "having a rich text editor", "new_budget", "content"
   end
 
-  it "creates a new budget", versioning: true do
+  it "creates a new budget", :versioning do
     click_on "New budget"
 
     within ".new_budget" do
@@ -46,7 +46,7 @@ describe "Admin manages budgets" do
     expect(page).to have_content("created the #{translated(attributes[:title])} budget")
   end
 
-  describe "updating a budget", versioning: true do
+  describe "updating a budget", :versioning do
     it "updates a budget" do
       within "tr", text: translated(budget.title) do
         find("button[data-controller='dropdown']").click

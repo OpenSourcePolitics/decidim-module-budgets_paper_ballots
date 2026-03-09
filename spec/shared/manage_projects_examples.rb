@@ -141,7 +141,7 @@ shared_examples "manage projects" do
 
   let(:attributes) { attributes_for(:project) }
 
-  it "creates a new project", versioning: true do
+  it "creates a new project", :versioning do
     within ".item_show__header-title" do
       click_on "New project"
     end
@@ -192,7 +192,7 @@ shared_examples "manage projects" do
     let!(:proposals) { create_list(:proposal, 5, component: proposal_component) }
     let(:attributes) { attributes_for(:project) }
 
-    it "updates a project", versioning: true do
+    it "updates a project", :versioning do
       within "tr", text: translated(project.title) do
         find("button[data-controller='dropdown']").click
         click_on "Edit"
