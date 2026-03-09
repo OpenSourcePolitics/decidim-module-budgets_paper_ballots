@@ -8,26 +8,27 @@ module Decidim
       describe ProjectsController, type: :controller do
         routes { Decidim::Budgets::AdminEngine.routes }
 
-        let(:user) { create(:user, :confirmed, :admin, organization: component.organization) }
+        let(:organization) { create(:organization) }
+        let(:user) { create(:user, :confirmed, :admin, organization:) }
+        let(:participatory_space) { create(:assembly, organization:) }
+        let(:component) { create(:budgets_component, organization:, participatory_space:) }
 
         before do
-          request.env["decidim.current_organization"] = component.organization
-          request.env["decidim.current_participatory_space"] = component.participatory_space
+          request.env["decidim.current_organization"] = organization
+          request.env["decidim.current_participatory_space"] = participatory_space
           request.env["decidim.current_component"] = component
           sign_in user
         end
 
         describe "PATCH update" do
-          let(:component) { create(:budgets_component) }
-          let(:project) { create(:project, component: component) }
+          let(:taxonomy) { create(:taxonomy, :with_parent, organization:) }
+          let(:project) { create(:project, component:, taxonomies: [taxonomy]) }
           let(:project_title) { project.title }
           let(:project_params) do
             {
               title: project_title,
               description: project.description,
               budget_amount: project.budget_amount,
-              decidim_scope_id: project.scope&.id,
-              decidim_category_id: project.category&.id,
               proposal_ids: project.linked_resources(:proposals, "included_proposals").pluck(:id),
               selected: project.selected?,
               photos: project.photos.map { |a| a.id.to_s }
@@ -37,7 +38,9 @@ module Decidim
             {
               id: project.id,
               budget_id: project.budget.id,
-              project: project_params
+              project: project_params,
+              component_id: component.id,
+              assembly_slug: participatory_space.slug
             }
           end
 
@@ -66,27 +69,11 @@ module Decidim
                 patch :update, params: params
 
                 expect(flash[:alert]).not_to be_empty
-                expect(response).to have_http_status(:ok)
+                expect(response).to have_http_status(:unprocessable_entity)
                 expect(subject).to render_template(:edit)
                 expect(response.body).to include("There was a problem updating this project")
               end
             end
-          end
-        end
-
-        context "when proposal linking is not enabled" do
-          let(:component) { create(:budgets_component) }
-
-          before do
-            allow(Decidim::Budgets).to receive(:enable_proposal_linking).and_return(false)
-          end
-
-          it "does not load the proposals admin picker concern" do
-            expect(Decidim::Budgets::Admin::ProjectsController).not_to receive(:include).with(
-              Decidim::Proposals::Admin::Picker
-            )
-
-            load "#{Decidim::Budgets::Engine.root}/app/controllers/decidim/budgets/admin/projects_controller.rb"
           end
         end
       end
