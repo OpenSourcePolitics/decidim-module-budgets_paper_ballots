@@ -12,6 +12,7 @@ module Decidim
         let(:user) { create(:user, :confirmed, :admin, organization:) }
         let(:participatory_space) { create(:assembly, organization:) }
         let(:component) { create(:budgets_component, organization:, participatory_space:) }
+        let(:budget) { create(:budget, component:) }
 
         before do
           request.env["decidim.current_organization"] = organization
@@ -73,6 +74,45 @@ module Decidim
                 expect(subject).to render_template(:edit)
                 expect(response.body).to include("There was a problem updating this project")
               end
+            end
+          end
+        end
+
+        describe "paper_ballots_count" do
+          let!(:project) { create(:project, component:, budget:) }
+          let(:params) do
+            {
+              budget_id: budget.id,
+              component_id: component.id,
+              assembly_slug: participatory_space.slug
+            }
+          end
+
+          context "when there are paper ballots for the budget" do
+            let!(:paper_ballot_result) { create :paper_ballot_result, project:, votes: 20 }
+            let(:project2) { create(:project, component:, budget:) }
+            let!(:paper_ballot_result2) { create :paper_ballot_result, project: project2, votes: 30 }
+
+            it "gives the count of paper ballots for the budget" do
+              get :index, params: params
+              expect(controller.paper_ballots_count).to eq(50)
+            end
+
+            context "and there is paper ballots for another budget" do
+              let(:project3) { create(:project, component:) }
+              let!(:paper_ballot_result3) { create :paper_ballot_result, project: project3, votes: 15 }
+
+              it "gives only the count of paper ballots for the selected budget" do
+                get :index, params: params
+                expect(controller.paper_ballots_count).to eq(50)
+              end
+            end
+          end
+
+          context "when there are no paper ballots" do
+            it "returns 0" do
+              get :index, params: params
+              expect(controller.paper_ballots_count).to eq(0)
             end
           end
         end
