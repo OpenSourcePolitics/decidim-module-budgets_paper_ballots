@@ -5,6 +5,7 @@ on: [push]
 env:
   NODE_VERSION: 22.14.0
   RUBY_VERSION: 3.3.4
+  DISABLE_SPRING: 1
 
 jobs:
   lints:
