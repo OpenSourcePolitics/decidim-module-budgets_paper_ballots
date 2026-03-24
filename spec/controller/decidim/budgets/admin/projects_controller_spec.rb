@@ -8,26 +8,28 @@ module Decidim
       describe ProjectsController, type: :controller do
         routes { Decidim::Budgets::AdminEngine.routes }
 
-        let(:user) { create(:user, :confirmed, :admin, organization: component.organization) }
+        let(:organization) { create(:organization) }
+        let(:user) { create(:user, :confirmed, :admin, organization:) }
+        let(:participatory_space) { create(:assembly, organization:) }
+        let(:component) { create(:budgets_component, organization:, participatory_space:) }
+        let(:budget) { create(:budget, component:) }
 
         before do
-          request.env["decidim.current_organization"] = component.organization
-          request.env["decidim.current_participatory_space"] = component.participatory_space
+          request.env["decidim.current_organization"] = organization
+          request.env["decidim.current_participatory_space"] = participatory_space
           request.env["decidim.current_component"] = component
           sign_in user
         end
 
         describe "PATCH update" do
-          let(:component) { create(:budgets_component) }
-          let(:project) { create(:project, component: component) }
+          let(:taxonomy) { create(:taxonomy, :with_parent, organization:) }
+          let(:project) { create(:project, component:, taxonomies: [taxonomy]) }
           let(:project_title) { project.title }
           let(:project_params) do
             {
               title: project_title,
               description: project.description,
               budget_amount: project.budget_amount,
-              decidim_scope_id: project.scope&.id,
-              decidim_category_id: project.category&.id,
               proposal_ids: project.linked_resources(:proposals, "included_proposals").pluck(:id),
               selected: project.selected?,
               photos: project.photos.map { |a| a.id.to_s }
@@ -37,7 +39,9 @@ module Decidim
             {
               id: project.id,
               budget_id: project.budget.id,
-              project: project_params
+              project: project_params,
+              component_id: component.id,
+              assembly_slug: participatory_space.slug
             }
           end
 
@@ -66,7 +70,7 @@ module Decidim
                 patch :update, params: params
 
                 expect(flash[:alert]).not_to be_empty
-                expect(response).to have_http_status(:ok)
+                expect(response).to have_http_status(:unprocessable_entity)
                 expect(subject).to render_template(:edit)
                 expect(response.body).to include("There was a problem updating this project")
               end
@@ -74,19 +78,42 @@ module Decidim
           end
         end
 
-        context "when proposal linking is not enabled" do
-          let(:component) { create(:budgets_component) }
-
-          before do
-            allow(Decidim::Budgets).to receive(:enable_proposal_linking).and_return(false)
+        describe "paper_ballots_count" do
+          let!(:project) { create(:project, component:, budget:) }
+          let(:params) do
+            {
+              budget_id: budget.id,
+              component_id: component.id,
+              assembly_slug: participatory_space.slug
+            }
           end
 
-          it "does not load the proposals admin picker concern" do
-            expect(Decidim::Budgets::Admin::ProjectsController).not_to receive(:include).with(
-              Decidim::Proposals::Admin::Picker
-            )
+          context "when there are paper ballots for the budget" do
+            let!(:paper_ballot_result) { create :paper_ballot_result, project:, votes: 20 }
+            let(:project2) { create(:project, component:, budget:) }
+            let!(:paper_ballot_result2) { create :paper_ballot_result, project: project2, votes: 30 }
 
-            load "#{Decidim::Budgets::Engine.root}/app/controllers/decidim/budgets/admin/projects_controller.rb"
+            it "gives the count of paper ballots for the budget" do
+              get :index, params: params
+              expect(controller.paper_ballots_count).to eq(50)
+            end
+
+            context "and there is paper ballots for another budget" do
+              let(:project3) { create(:project, component:) }
+              let!(:paper_ballot_result3) { create :paper_ballot_result, project: project3, votes: 15 }
+
+              it "gives only the count of paper ballots for the selected budget" do
+                get :index, params: params
+                expect(controller.paper_ballots_count).to eq(50)
+              end
+            end
+          end
+
+          context "when there are no paper ballots" do
+            it "returns 0" do
+              get :index, params: params
+              expect(controller.paper_ballots_count).to eq(0)
+            end
           end
         end
       end

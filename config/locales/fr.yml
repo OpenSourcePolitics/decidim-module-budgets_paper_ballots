@@ -1,0 +1,43 @@
+fr:
+  activemodel:
+    attributes:
+      paper_ballot_result:
+        decidim_project_id: Projet
+        votes: Votes
+  decidim:
+    budgets:
+      actions:
+        destroy: Supprimer
+        import_results: Importer les bulletins de vote papier
+      admin:
+        budgets:
+          index:
+            paper_ballots: Bulletins de vote papier
+        imports:
+          help:
+            paper_ballot_results: "Le document d'import doit contenir les colonnes suivantes: 'id' (avec l'id du projet) et 'paper_ballots_to_import' (avec le nombre de nouveaux votes que vous importez pour le projet). Vous pouvez réutiliser un export de tous les projets et ajouter une colonne nommée 'paper_ballots_to_import'."
+          label:
+            paper_ballot_results: Importer les bulletins de vote papier
+          resources:
+            paper_ballot_results:
+              one: résultat des bulletins de vote papier
+              other: résultats des bulletins de vote papier
+          title:
+            paper_ballot_results: Importer les résultats pour les bulletins de vote papier
+        models:
+          paper_ballot_result: Résultat des bulletins de vote papier
+        projects:
+          index:
+            paper_ballots: Bulletins de vote papier
+        paper_ballots_imports:
+          new:
+            create: Importer les bulletins de vote papier
+            title: Importer les bulletins de vote papier
+      admin_log:
+        paper_ballot_result:
+          create: "%{user_name} a impor les résultats des bulletins de vote papier dans %{space_name}"
+      models:
+        paper_ballot_result:
+          fields:
+            id: ID
+            votes: Votes

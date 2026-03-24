@@ -8,6 +8,7 @@ en:
   decidim:
     budgets:
       actions:
+        destroy: Destroy
         import_results: Import paper ballots
       admin:
         budgets:

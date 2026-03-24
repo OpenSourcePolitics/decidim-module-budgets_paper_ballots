@@ -2,143 +2,124 @@
 
 require "spec_helper"
 
-describe "Admin manages budgets", type: :system do
-  let(:budget) { create :budget, component: current_component }
+describe "Admin manages budgets" do
+  let!(:budget) { create(:budget, component: current_component) }
   let(:manifest_name) { "budgets" }
+  let(:attributes) { attributes_for(:budget) }
 
   include_context "when managing a component as an admin"
   before do
-    budget
     switch_to_host(organization.host)
     login_as user, scope: :user
     visit_component_admin
   end
 
+  it_behaves_like "manage taxonomy filters in settings"
+  it_behaves_like "access component permissions form"
+
   describe "admin form" do
-    before { click_on "New Budget" }
+    before { click_on "New budget" }
 
     it_behaves_like "having a rich text editor", "new_budget", "content"
   end
 
-  it "creates a new budget" do
-    within ".card-title" do
-      click_link "New Budget"
-    end
+  it "creates a new budget", :versioning do
+    click_on "New budget"
 
     within ".new_budget" do
-      fill_in_i18n(
-        :budget_title,
-        "#budget-title-tabs",
-        en: "My Budget",
-        es: "Mi Presupuesto",
-        ca: "El meu Pressupost"
-      )
-      fill_in_i18n_editor(
-        :budget_description,
-        "#budget-description-tabs",
-        en: "Long description",
-        es: "Descripción más larga",
-        ca: "Descripció més llarga"
-      )
+      fill_in_i18n(:budget_title, "#budget-title-tabs", **attributes[:title].except("machine_translations"))
+      fill_in_i18n_editor(:budget_description, "#budget-description-tabs", **attributes[:description].except("machine_translations"))
+
       fill_in :budget_weight, with: 1
       fill_in :budget_total_budget, with: 100_000_00
-      scope_pick select_data_picker(:budget_decidim_scope_id), scope
     end
 
-    within ".new_budget" do
-      find("*[type=submit]").click
-    end
+    click_on "Create budget"
 
-    within ".callout-wrapper" do
-      expect(page).to have_content("successfully")
-    end
+    expect(page).to have_admin_callout("Budget successfully created.")
 
     within "table" do
-      expect(page).to have_content("My Budget")
+      expect(page).to have_content(translated(attributes[:title]))
     end
+
+    visit decidim_admin.root_path
+    expect(page).to have_content("created the #{translated(attributes[:title])} budget")
   end
 
-  describe "updating a budget" do
+  describe "updating a budget", :versioning do
     it "updates a budget" do
-      within find("tr", text: translated(budget.title)) do
-        page.find(".action-icon--edit").click
+      within "tr", text: translated(budget.title) do
+        find("button[data-controller='dropdown']").click
+        click_on "Edit"
       end
 
       within ".edit_budget" do
-        fill_in_i18n(
-          :budget_title,
-          "#budget-title-tabs",
-          en: "My new title",
-          es: "Mi nuevo título",
-          ca: "El meu nou títol"
-        )
-
-        find("*[type=submit]").click
+        fill_in_i18n(:budget_title, "#budget-title-tabs", **attributes[:title].except("machine_translations"))
+        fill_in_i18n_editor(:budget_description, "#budget-description-tabs", **attributes[:description].except("machine_translations"))
       end
 
-      within ".callout-wrapper" do
-        expect(page).to have_content("successfully")
-      end
+      click_on "Update budget"
+
+      expect(page).to have_admin_callout("Budget successfully updated.")
 
       within "table" do
-        expect(page).to have_content("My new title")
+        expect(page).to have_content(translated(attributes[:title]))
       end
+
+      visit decidim_admin.root_path
+      expect(page).to have_content("updated the #{translated(attributes[:title])} budget")
     end
   end
 
   describe "previewing budgets" do
     it "links the budget correctly" do
-      link = find("a[title=Preview]")
-      expect(link[:href]).to include(resource_locator(budget).path)
+      within "tr", text: translated(budget.title) do
+        find("button[data-controller='dropdown']").click
+        preview_window = window_opened_by { click_on "Preview" }
+        within_window preview_window do
+          expect(page).to have_current_path(Decidim::EngineRouter.main_proxy(budget.component).budget_projects_path(budget))
+        end
+      end
     end
   end
 
-  describe "deleting a budget" do
-    it "deletes a budget" do
-      within find("tr", text: translated(budget.title)) do
+  describe "soft deleting a budget" do
+    it "moves to the trash a budget" do
+      within "tr", text: translated(budget.title) do
         accept_confirm do
-          page.find(".action-icon--remove").click
+          find("button[data-controller='dropdown']").click
+          click_on "Move to trash"
         end
       end
 
-      within ".callout-wrapper" do
-        expect(page).to have_content("successfully")
-      end
+      expect(page).to have_admin_callout("Budget successfully deleted.")
 
       within "table" do
-        expect(page).not_to have_content(translated(budget.title))
-      end
-    end
-
-    context "when the budget has projects" do
-      let!(:budget) { create(:budget, :with_projects, component: current_component) }
-
-      it "cannot delete the budget" do
-        within find("tr", text: translated(budget.title)) do
-          expect(page).to have_no_selector(".action-icon--remove")
-        end
+        expect(page).to have_no_content(translated(budget.title))
       end
     end
   end
 
-  describe "component page shows finished and pending orders of all budgets" do
+  describe "component page shows finished and pending orders of all budgets, and paper ballots" do
     context "when component has many budgets with orders" do
       let(:budget2) { create(:budget, :with_projects, component: current_component) }
-      let(:project) { create(:project, budget: budget, budget_amount: 90_000_000) }
+      let(:project) { create(:project, budget:, budget_amount: 90_000_000) }
+      let!(:paper_ballot_result) { create :paper_ballot_result, project:, votes: 20 }
       let(:project2) { create(:project, budget: budget2, budget_amount: 95_000_000) }
-      let(:user2) { create :user, :confirmed, organization: organization }
-      let(:user3) { create :user, :confirmed, organization: organization }
+      let!(:paper_ballot_result2) { create :paper_ballot_result, project: project2, votes: 25 }
+      let(:user2) { create(:user, :confirmed, organization:) }
+      let(:user3) { create(:user, :confirmed, organization:) }
 
       # User has one finished and pending order
       let!(:finished_order) do
-        order = create(:order, user: user, budget: budget)
+        order = create(:order, user:, budget:)
         order.projects << project
         order.checked_out_at = Time.current
         order.save!
         order
       end
       let!(:pending_order) do
-        order = create(:order, user: user, budget: budget2)
+        order = create(:order, user:, budget: budget2)
         order.projects << project2
         order.save!
         order
@@ -146,7 +127,7 @@ describe "Admin manages budgets", type: :system do
 
       # User2 has two finished orders
       let!(:finished_order2) do
-        order = create(:order, user: user2, budget: budget)
+        order = create(:order, user: user2, budget:)
         order.projects << project
         order.checked_out_at = Time.current
         order.save!
@@ -172,17 +153,60 @@ describe "Admin manages budgets", type: :system do
       it "shows finished and pending orders" do
         visit current_path
         within find_all(".card-divider").last do
-          expect(page).to have_content("Finished votes: \n4")
-          expect(page).to have_content("Pending votes: \n1")
+          expect(page).to have_content("Finished votes: 4")
+          expect(page).to have_content("Pending votes: 1")
         end
       end
 
       it "shows count of users with finished and pending orders" do
         visit current_path
         within find_all(".card-divider").last do
-          expect(page).to have_content("Users with finished votes: \n3")
-          expect(page).to have_content("Users with pending votes: \n1")
+          expect(page).to have_content("Users with finished votes: 3")
+          expect(page).to have_content("Users with pending votes: 1")
         end
+      end
+
+      it "shows count of paper ballots" do
+        visit current_path
+        within find_all(".card-divider").last do
+          expect(page).to have_content("Paper ballots: 45")
+        end
+      end
+    end
+  end
+
+  describe "soft delete a budget" do
+    let(:admin_resource_path) { current_path }
+    let(:trash_path) { "#{admin_resource_path}/budgets/manage_trash" }
+    let(:title) { { en: "My budget" } }
+    let!(:resource) { create(:budget, title:, component: current_component) }
+
+    it_behaves_like "manage soft deletable resource", "budget"
+    it_behaves_like "manage trashed resource", "budget"
+  end
+
+  describe "more information button" do
+    context "when budget has more_information content" do
+      let!(:budget_with_info) { create(:budget, :with_projects, component: current_component) }
+
+      before do
+        current_component.update!(settings: { more_information_modal: { en: "Additional budget information" } })
+      end
+
+      it "displays the more information button" do
+        visit Decidim::EngineRouter.main_proxy(current_component).budget_projects_path(budget_with_info)
+
+        expect(page).to have_button("More information")
+      end
+    end
+
+    context "when budget has no more_information content" do
+      let!(:budget_without_info) { create(:budget, :with_projects, component: current_component) }
+
+      it "does not display the more information button" do
+        visit Decidim::EngineRouter.main_proxy(current_component).budget_projects_path(budget_without_info)
+
+        expect(page).to have_no_button("More information")
       end
     end
   end

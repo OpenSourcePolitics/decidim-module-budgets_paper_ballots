@@ -7,12 +7,12 @@ module Decidim
         if options[:layout] == :one_line
           safe_join([model.total_votes, " ", count_label])
         else
-          safe_join([number, count_label])
+          safe_join([number, " ", count_label])
         end
       end
 
       def number
-        content_tag :div, model.total_votes, class: "text-large"
+        content_tag :span, model.total_votes, class: "text-large"
       end
 
       def count_label

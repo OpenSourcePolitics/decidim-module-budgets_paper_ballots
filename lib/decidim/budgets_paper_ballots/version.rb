@@ -3,8 +3,8 @@
 # :nocov:
 module Decidim
   module BudgetsPaperBallots
-    VERSION = "0.27.0"
-    DECIDIM_VERSION = ">= 0.27.0"
+    VERSION = "0.31"
+    DECIDIM_VERSION = "~> 0.31.0"
   end
 end
 # :nocov:

@@ -16,21 +16,21 @@ gem "decidim", DECIDIM_VERSION
 gem "decidim-budgets_paper_ballots", path: "."
 
 gem "bootsnap", "~> 1.4"
-gem "puma", ">= 5.5.1"
+gem "puma", ">= 6.3.1"
 gem "uglifier", "~> 4.1"
 
 group :development, :test do
   gem "byebug", "~> 11.0", platform: :mri
 
   gem "decidim-dev", DECIDIM_VERSION
-  gem "rubocop-faker"
+  gem "rubocop-faker", "~> 1.3", ">= 1.3.0"
 end
 
 group :development do
-  gem "faker", "~> 2.14"
-  gem "letter_opener_web", "~> 1.3"
+  gem "faker", "3.5.3"
+  gem "letter_opener_web", "~> 2.0"
   gem "listen", "~> 3.1"
-  gem "spring", "~> 2.0"
-  gem "spring-watcher-listen", "~> 2.0"
-  gem "web-console", "~> 3.5"
+  gem "spring", "~> 4.0"
+  gem "spring-watcher-listen", "~> 2.1"
+  gem "web-console", "~> 4.2"
 end

@@ -69,7 +69,7 @@ AllCops:
   # If a value is specified for TargetRubyVersion then it is used.
   # Else if .ruby-version exists and it contains an MRI version it is used.
   # Otherwise we fallback to the oldest officially supported Ruby version (2.0).
-  TargetRubyVersion: 2.7
+  TargetRubyVersion: 3.3
 
   RSpec:
     Patterns:
@@ -1248,6 +1248,7 @@ RSpec/DescribeClass:
     - spec/i18n_spec.rb
     - "**/*/spec/**/*_badge_spec.rb"
     - "**/tasks/**/*"
+    - spec/system/*
 
 RSpec/ExampleLength:
   Max: 49
@@ -1278,6 +1279,7 @@ RSpec/RepeatedExampleGroupDescription:
 
 RSpec/RepeatedExampleGroupBody:
   Enabled: false
+
 RSpec/VerifiedDoubles:
   Enabled: false
 
@@ -1285,6 +1287,9 @@ RSpec/LeakyConstantDeclaration:
   Enabled: false
 
 RSpec/DescribedClass:
+  Enabled: false
+
+RSpec/IndexedLet:
   Enabled: false
 
 # This is the default configuration file.
